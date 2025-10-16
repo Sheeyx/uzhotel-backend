@@ -5,9 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "start": "node dist/index.js",
-    "build": "tsc -p tsconfig.json",
-    "build:clean": "rm -rf dist && tsc -p tsconfig.json"
+    "start": "tsx src/index.ts",
+    "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@types/nodemailer": "^7.0.2",

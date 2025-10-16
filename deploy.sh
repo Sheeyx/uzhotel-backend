@@ -1,93 +1,79 @@
-#!/bin/bash
-set -euo pipefail
+#!/usr/bin/env bash
+# ===============================================
+# Booking Bot Deployment Script
+# Author: Shekhrozbek Muydinov
+# ===============================================
 
-# ========= CONFIG =========
-REPO_DIR="/var/www/booking-bot"      # <— change to your project path
+set -e  # Stop on first error
+
+# ===== CONFIG =====
+REPO_DIR="/var/www/booking-bot"      # change this to your project path
 BRANCH_PROD="main"                   # or "master" if your repo uses master
-BRANCH_DEV="develop"                 # your dev branch name (optional)
-PM2_ECOSYSTEM="process.config.js"    # pm2 ecosystem file (fallback to dist/index.js if missing)
+BRANCH_DEV="develop"
+PM2_ECOSYSTEM="process.config.js"    # pm2 config file if you have one
+PORT="${PORT:-4008}"                 # default port if not set
 
-# Environment sanity checks (customize as needed)
-: "${MONGO_URI:?MONGO_URI is required}"
-: "${BOT_TOKEN:?BOT_TOKEN is required}"
-: "${API_KEY:?API_KEY is required}"
-PORT="${PORT:-4008}"                 # default 4008 if not set
+# ===== COLORS =====
+GREEN="\033[1;32m"
+YELLOW="\033[1;33m"
+CYAN="\033[1;36m"
+RESET="\033[0m"
 
-# ========= FUNCTIONS =========
-deploy_branch () {
-  local BR="$1"
-  local ENV="$2"    # production|development
-  local PM2_NAME="$3"
+# ===== FUNCTIONS =====
+deploy_branch() {
+  local BRANCH="$1"
+  local ENV="$2"
+  local NAME="$3"
 
-  echo "==> Switching to $REPO_DIR"
+  echo -e "${CYAN}🔄 Switching to project directory...${RESET}"
   cd "$REPO_DIR"
 
-  echo "==> Resetting local changes"
+  echo -e "${CYAN}📦 Pulling latest code from branch '$BRANCH'...${RESET}"
   git reset --hard
+  git checkout "$BRANCH"
+  git pull origin "$BRANCH"
 
-  echo "==> Checking out branch: $BR"
-  git checkout "$BR"
+  echo -e "${CYAN}📥 Installing dependencies...${RESET}"
+  npm install
 
-  echo "==> Pulling latest from origin/$BR"
-  git pull origin "$BR"
-
-  echo "==> Installing dependencies"
-  npm i
-
-  echo "==> Building project"
+  echo -e "${CYAN}🏗️  Building project...${RESET}"
   npm run build
 
-  # Export env for this session so pm2 picks them up (good for fallback mode)
+  # Export environment variables for PM2
   export NODE_ENV="$ENV"
   export PORT="$PORT"
   export MONGO_URI="$MONGO_URI"
   export BOT_TOKEN="$BOT_TOKEN"
   export API_KEY="$API_KEY"
 
+  echo -e "${CYAN}🚀 Starting with PM2...${RESET}"
   if [ -f "$PM2_ECOSYSTEM" ]; then
-    echo "==> Starting with PM2 ecosystem ($PM2_ECOSYSTEM) in $ENV"
     pm2 start "$PM2_ECOSYSTEM" --env "$ENV"
   else
-    echo "==> Ecosystem not found; starting dist/index.js directly"
-    pm2 start dist/index.js \
-      --name "$PM2_NAME" \
-      --update-env
+    pm2 start dist/index.js --name "$NAME" --update-env
   fi
 
-  echo "==> Enabling PM2 startup + saving process list"
+  echo -e "${GREEN}✅ Deployment successful ($ENV)!${RESET}"
   pm2 save
-  pm2 startup -u "$(whoami)" --hp "$HOME" >/dev/null 2>&1 || true
+  pm2 restart all
 
-  echo "==> Done: $PM2_NAME ($ENV)"
+  echo -e "${CYAN}🌐 Checking health endpoint...${RESET}"
+  curl -fsS "http://localhost:${PORT}/health" && echo -e "\n${GREEN}🟢 Health OK${RESET}" || echo -e "\n${YELLOW}⚠️ Health check failed${RESET}"
 }
 
-# ========= ENTRYPOINT =========
-# Usage:
-#   ./deploy.sh prod
-#   ./deploy.sh dev
-# If no arg given, default to prod.
-
+# ===== MAIN =====
 MODE="${1:-prod}"
 
 if [ "$MODE" = "prod" ] || [ "$MODE" = "production" ]; then
-  echo "🚀 Deploying PRODUCTION (branch: $BRANCH_PROD)"
+  echo -e "${GREEN}🚀 Deploying PRODUCTION branch '$BRANCH_PROD'...${RESET}"
   deploy_branch "$BRANCH_PROD" "production" "booking-bot:prod"
 elif [ "$MODE" = "dev" ] || [ "$MODE" = "development" ]; then
-  echo "🧪 Deploying DEVELOPMENT (branch: $BRANCH_DEV)"
-  # For dev, you can run ts-node or nodemon via PM2 if you prefer:
-  # pm2 start "npm run start:dev" --name "booking-bot:dev"
+  echo -e "${YELLOW}🧪 Deploying DEVELOPMENT branch '$BRANCH_DEV'...${RESET}"
   deploy_branch "$BRANCH_DEV" "development" "booking-bot:dev"
 else
-  echo "Usage: $0 [prod|dev]"
+  echo "Usage: ./deploy.sh [prod|dev]"
   exit 1
 fi
 
-echo "✅ PM2 list:"
+echo -e "${CYAN}📜 PM2 list:${RESET}"
 pm2 ls
-
-# Optional: quick health check (adjust URL if behind a proxy)
-echo "🔎 Hitting health endpoint: http://localhost:${PORT}/health"
-curl -fsS "http://localhost:${PORT}/health" && echo -e "\n🟢 Health OK" || echo -e "\n⚠️ Health endpoint failed (check logs)"
-
-echo "📜 Logs: pm2 logs (Ctrl+C to exit)"
-# pm2 logs   # uncomment if you want to tail logs automatically

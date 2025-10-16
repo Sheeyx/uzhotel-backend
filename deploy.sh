@@ -16,7 +16,8 @@ npm run build
 # If you named PM2 file 'process.config.cjs' (recommended for ESM):
 # pm2 start process.config.cjs --env production
 # Else (CJS project) keep .js:
-pm2 start process.config.js --env production
+pm2 start process.config.cjs --env development
+
 
 # If already started previously, prefer reload:
 # pm2 reload process.config.cjs --env production

@@ -1,20 +1,14 @@
-module.exports = {
+export default {
   apps: [
     {
       name: "booking-bot",
-      script: "dist/index.js", // after build
-      instances: 1,            // or "max" for all CPU cores
+      script: "dist/index.js",
+      instances: 1,
       autorestart: true,
       watch: false,
       max_memory_restart: "500M",
-
-      // Use dotenv via config.ts
-      env: {
-        NODE_ENV: "development",
-      },
-      env_production: {
-        NODE_ENV: "production",
-      },
+      env: { NODE_ENV: "development" },
+      env_production: { NODE_ENV: "production" },
     },
   ],
 };

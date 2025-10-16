@@ -4,7 +4,7 @@ import helmet from "helmet";
 import cors from "cors";
 import morgan from "morgan";
 import mongoose from "mongoose";
-import { ENV } from "./config";
+import { ENV } from "./config.js";
 import { sendBookingEmailNodemailer, BookingEmailPayload } from "./services/mailer";
 import { bookingRouter } from "./routes/bookingRoute";
 import { bot } from "./bot/bot";

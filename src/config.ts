@@ -12,7 +12,6 @@ export interface AppEnv {
   ADMIN_CHAT_IDS: string[];
   TG_ADMIN_IDS: string[];
   API_KEY: string;
-  ADMIN_HTTP_SECRET: string;
 }
 
 export const ENV: AppEnv = {
@@ -22,7 +21,6 @@ export const ENV: AppEnv = {
   ADMIN_CHAT_IDS: splitIds(process.env.ADMIN_CHAT_IDS),
   TG_ADMIN_IDS: splitIds(process.env.TG_ADMIN_IDS),
   API_KEY: process.env.API_KEY ?? "",
-  ADMIN_HTTP_SECRET: process.env.ADMIN_HTTP_SECRET ?? "",
 };
 
 (function assertEnv(e: AppEnv) {
@@ -30,6 +28,5 @@ export const ENV: AppEnv = {
   if (!e.BOT_TOKEN) missing.push("BOT_TOKEN");
   if (!e.MONGO_URI) missing.push("MONGO_URI");
   if (!e.API_KEY) missing.push("API_KEY");
-  if (!e.ADMIN_HTTP_SECRET) missing.push("ADMIN_HTTP_SECRET");
   if (missing.length) throw new Error(`Missing env: ${missing.join(", ")}`);
 })(ENV);

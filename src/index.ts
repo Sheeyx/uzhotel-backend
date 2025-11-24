@@ -65,10 +65,10 @@ async function main() {
   }
 
   // 5) Routes
-  app.use("/api/bot", apiKeyGuard, bookingRouter);
+  app.use("/bot", apiKeyGuard, bookingRouter);
 
   // ✅ Email route
-  app.post("/api/booking/email", apiKeyGuard, async (req, res) => {
+  app.post("/booking/email", apiKeyGuard, async (req, res) => {
     try {
       const body = req.body as BookingEmailPayload & { toEmail?: string };
       if (!body?.roomTitle || !body?.guestName || !body?.phone || !body?.checkin || !body?.checkout) {

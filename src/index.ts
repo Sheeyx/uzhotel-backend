@@ -35,8 +35,9 @@ function validateEnv() {
 // ALLOWED ORIGINS (DEV + PROD)
 // ================================
 const allowedOrigins = [
-  "http://localhost:3000",
+  "http://localhost:3003",
   "https://snhotel.uz",
+  "https://snhotel.uz/api",
   "https://admin.snhotel.uz",
 ];
 

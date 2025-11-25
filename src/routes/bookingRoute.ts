@@ -8,7 +8,7 @@ import { notifyBookingWithButtons } from '../bot/nitifier';
 export const bookingRouter = Router();
 
 // POST /api/bot/booking
-bookingRouter.post('/booking', requireApiKey, async (req: Request, res: Response) => {
+bookingRouter.post('/booking/bot', requireApiKey, async (req: Request, res: Response) => {
   try {
     const p = (req.body || {}) as BookingPayload;
 

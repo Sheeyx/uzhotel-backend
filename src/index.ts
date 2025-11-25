@@ -65,7 +65,7 @@ async function main() {
   }
 
   // 5) Routes
-  app.use("/bot", apiKeyGuard, bookingRouter);
+  app.use("/", apiKeyGuard, bookingRouter);
 
   // ✅ Email route
   app.post("/booking/email", apiKeyGuard, async (req, res) => {

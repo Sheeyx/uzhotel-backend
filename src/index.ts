@@ -67,33 +67,27 @@ async function main() {
     next();
   });
 
-  // 3) CORS with allowlist
-// =======================
-// CORS (same style as Studify)
-// =======================
-const allowedOrigins = [
-  "http://localhost:3007",
-  "https://snhotel.uz",
-  "https://www.snhotel.uz",
-];
+  // =======================
+  // 3) CORS
+  // =======================
+  app.use(
+    cors({
+      credentials: true,
+      origin: (origin, callback) => {
+        // allow non-browser / curl (no origin) and allowed origins
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error(`Origin ${origin} not allowed by CORS`));
+        }
+      },
+      methods: ["GET", "POST", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "x-api-key", "authorization"],
+    })
+  );
 
-app.use(
-  cors({
-    credentials: true,
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error(`Origin ${origin} not allowed by CORS`));
-      }
-    },
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "x-api-key", "authorization"],
-  })
-);
-
-app.options("*", cors());
-
+  // (Optional) if you want explicit preflight handling, but cors() above already covers it:
+  // app.options("*", (req, res) => res.sendStatus(204));
 
   // 4) Parsers + logs
   app.use(express.json({ limit: "512kb" }));
@@ -115,6 +109,7 @@ app.options("*", cors());
   }
 
   // 6) Routes
+  // bookingRouter should include /booking/bot inside
   app.use("/", apiKeyGuard, bookingRouter);
 
   // ✅ Email route
@@ -129,7 +124,9 @@ app.options("*", cors());
         !body?.checkin ||
         !body?.checkout
       ) {
-        return res.status(400).json({ ok: false, error: "Missing required fields" });
+        return res
+          .status(400)
+          .json({ ok: false, error: "Missing required fields" });
       }
 
       await sendBookingEmailNodemailer(body, body.toEmail);
@@ -144,7 +141,9 @@ app.options("*", cors());
   app.get("/health", (_req, res) => res.json({ ok: true }));
 
   // 8) 404 + error handler
-  app.use((req, res) => res.status(404).json({ ok: false, error: "Not found" }));
+  app.use((req, res) =>
+    res.status(404).json({ ok: false, error: "Not found" })
+  );
 
   app.use(
     (

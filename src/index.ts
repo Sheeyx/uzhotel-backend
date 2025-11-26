@@ -38,6 +38,8 @@ const allowedOrigins = [
   "http://localhost:3003",
   "https://snhotel.uz",
   "https://snhotel.uz/api",
+  "https://www.snhotel.uz/api",
+  "https://www.snhotel.uz",
   "https://admin.snhotel.uz",
 ];
 

@@ -32,18 +32,6 @@ function validateEnv() {
 }
 
 // ================================
-// ALLOWED ORIGINS (DEV + PROD)
-// ================================
-const allowedOrigins = [
-  "http://localhost:3003",
-  "https://snhotel.uz",
-  "https://snhotel.uz/api",
-  "https://www.snhotel.uz/api",
-  "https://www.snhotel.uz",
-  "https://admin.snhotel.uz",
-];
-
-// ================================
 // MAIN FUNCTION
 // ================================
 async function main() {
@@ -65,26 +53,29 @@ async function main() {
     })
   );
 
-  // ================================
-  // CORS WITH WHITELIST
-  // ================================
-  app.use(
-    cors({
-      origin: function (origin, callback) {
-        if (!origin) return callback(null, true); // Postman / mobile / server
+ // ================================
+// CORS WITH WHITELIST
+// ================================
 
-        if (allowedOrigins.includes(origin)) {
-          return callback(null, true);
-        }
+const allowedOrigins = [
+  "http://localhost:3003",
+  "https://snhotel.uz",
+  "https://www.snhotel.uz",
+  "https://admin.snhotel.uz",
+];
 
-        return callback(new Error("Not allowed by CORS: " + origin));
-      },
-      credentials: true,
-      methods: ["GET", "POST", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "x-api-key", "authorization"],
-    })
-  );
-  app.options("*", cors());
+app.use(
+  cors({
+    origin: allowedOrigins,      // array → handled by cors lib
+    credentials: true,
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "x-api-key", "authorization"],
+  })
+);
+
+// Optional: explicit preflight handler (but not strictly needed)
+app.options("*", cors({ origin: allowedOrigins }));
+
 
   // ================================
   // PARSERS + LOGS

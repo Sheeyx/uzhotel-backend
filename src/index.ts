@@ -68,15 +68,32 @@ async function main() {
   });
 
   // 3) CORS with allowlist
-  app.use(
-    cors({
-      origin: allowedOrigins,
-      credentials: true,
-      methods: ["GET", "POST", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "x-api-key", "authorization"],
-    })
-  );
-  app.options("*", cors());
+// =======================
+// CORS (same style as Studify)
+// =======================
+const allowedOrigins = [
+  "http://localhost:3007",
+  "https://snhotel.uz",
+  "https://www.snhotel.uz",
+];
+
+app.use(
+  cors({
+    credentials: true,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin ${origin} not allowed by CORS`));
+      }
+    },
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "x-api-key", "authorization"],
+  })
+);
+
+app.options("*", cors());
+
 
   // 4) Parsers + logs
   app.use(express.json({ limit: "512kb" }));

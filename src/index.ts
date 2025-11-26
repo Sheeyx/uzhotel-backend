@@ -32,79 +32,75 @@ function validateEnv() {
 }
 
 // ================================
+// ALLOWED ORIGINS (DEV + PROD)
+// ================================
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3007",
+  "https://snhotel.uz",
+  "https://www.snhotel.uz",
+];
+
+// ================================
 // MAIN FUNCTION
 // ================================
 async function main() {
   validateEnv();
 
-  // Mongo connection
+  // 1) Connect Mongo
   await mongoose.connect(ENV.MONGO_URI);
   console.log("✅ MongoDB connected");
 
   const app = express();
   app.set("trust proxy", 1);
 
-  // ================================
-  // SECURITY LAYERS
-  // ================================
+  // 2) Security
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: "cross-origin" },
     })
   );
 
- // ================================
-// CORS WITH WHITELIST
-// ================================
+  // 🔎 Debug: log incoming origin (can remove later)
+  app.use((req, _res, next) => {
+    console.log("🔎 Incoming Origin:", req.headers.origin);
+    next();
+  });
 
-const allowedOrigins = [
-  "http://localhost:3003",
-  "https://snhotel.uz",
-  "https://www.snhotel.uz",
-  "https://admin.snhotel.uz",
-];
+  // 3) CORS with allowlist
+  app.use(
+    cors({
+      origin: allowedOrigins,
+      credentials: true,
+      methods: ["GET", "POST", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "x-api-key", "authorization"],
+    })
+  );
+  app.options("*", cors());
 
-app.use(
-  cors({
-    origin: allowedOrigins,      // array → handled by cors lib
-    credentials: true,
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "x-api-key", "authorization"],
-  })
-);
-
-// Optional: explicit preflight handler (but not strictly needed)
-app.options("*", cors({ origin: allowedOrigins }));
-
-
-  // ================================
-  // PARSERS + LOGS
-  // ================================
+  // 4) Parsers + logs
   app.use(express.json({ limit: "512kb" }));
   app.use(morgan("dev"));
 
-  // ================================
-  // API KEY GUARD
-  // ================================
+  // 5) API key guard
   const API_KEY = ENV.API_KEY || process.env.API_KEY || "";
   function apiKeyGuard(
     req: express.Request,
     res: express.Response,
     next: express.NextFunction
   ) {
-    if (!API_KEY) return next(); // disable in dev
+    if (!API_KEY) return next(); // skip if not set (dev)
     const key = req.header("x-api-key");
-    if (key !== API_KEY)
+    if (key !== API_KEY) {
       return res.status(401).json({ ok: false, error: "Unauthorized" });
+    }
     next();
   }
 
-  // ================================
-  // ROUTES
-  // ================================
+  // 6) Routes
   app.use("/", apiKeyGuard, bookingRouter);
 
-  // EMAIL ROUTE
+  // ✅ Email route
   app.post("/booking/email", apiKeyGuard, async (req, res) => {
     try {
       const body = req.body as BookingEmailPayload & { toEmail?: string };
@@ -116,11 +112,10 @@ app.options("*", cors({ origin: allowedOrigins }));
         !body?.checkin ||
         !body?.checkout
       ) {
-        return res.status(400).json({ ok: false, error: "Missing fields" });
+        return res.status(400).json({ ok: false, error: "Missing required fields" });
       }
 
       await sendBookingEmailNodemailer(body, body.toEmail);
-
       res.json({ ok: true, message: "Email sent successfully" });
     } catch (e) {
       console.error("Email send error:", e);
@@ -128,15 +123,11 @@ app.options("*", cors({ origin: allowedOrigins }));
     }
   });
 
-  // HEALTH CHECK
+  // 7) Health check
   app.get("/health", (_req, res) => res.json({ ok: true }));
 
-  // ================================
-  // 404 + ERROR HANDLERS
-  // ================================
-  app.use((req, res) =>
-    res.status(404).json({ ok: false, error: "Not found" })
-  );
+  // 8) 404 + error handler
+  app.use((req, res) => res.status(404).json({ ok: false, error: "Not found" }));
 
   app.use(
     (
@@ -150,18 +141,14 @@ app.options("*", cors({ origin: allowedOrigins }));
     }
   );
 
-  // ================================
-  // SERVER START
-  // ================================
+  // 9) Start HTTP server
   const port = Number(ENV.PORT || process.env.PORT || 4008);
   const server = app.listen(port, () =>
-    console.log(`🚀 API running on port ${port}`)
+    console.log(`✅ API listening on :${port}`)
   );
-  server.setTimeout(60000);
+  server.setTimeout(60_000);
 
-  // ================================
-  // TELEGRAM BOT REGISTRATION
-  // ================================
+  // 10) Register Telegram handlers
   registerStart(bot);
   registerHelp(bot);
   registerPanel(bot);
@@ -169,18 +156,16 @@ app.options("*", cors({ origin: allowedOrigins }));
   registerActions(bot);
   registerUsers(bot);
 
-  // BOT LAUNCH
+  // 11) Launch Telegram bot
   try {
     await bot.telegram.deleteWebhook({ drop_pending_updates: true });
     await bot.launch();
-    console.log("🤖 Telegram bot launched (polling)");
+    console.log("🤖 Bot launched (polling)");
   } catch (err) {
     console.error("❌ bot.launch() failed:", err);
   }
 
-  // ================================
-  // GRACEFUL SHUTDOWN
-  // ================================
+  // 12) Graceful shutdown
   async function shutdown(signal: string) {
     try {
       console.log(`\n${signal} received. Shutting down…`);
@@ -198,7 +183,7 @@ app.options("*", cors({ origin: allowedOrigins }));
   process.on("SIGINT", () => shutdown("SIGINT"));
   process.on("SIGTERM", () => shutdown("SIGTERM"));
 
-  // Crash protection
+  // 13) Crash guards
   process.on("unhandledRejection", (r) =>
     console.error("UNHANDLED REJECTION:", r)
   );
@@ -207,7 +192,7 @@ app.options("*", cors({ origin: allowedOrigins }));
   );
 }
 
-// MAIN START
+// Bootstrap
 main().catch((e) => {
   console.error("FATAL:", e);
   process.exit(1);
